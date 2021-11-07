@@ -1,0 +1,6 @@
+[workspace]
+members = [
+    "kindle-notes-core",
+    "kindle-notes-cli",
+    "kindle-notes-gui",
+]

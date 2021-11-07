@@ -1,0 +1,11 @@
+==========
+Designing Data-Intensive Applications: The Big Ideas Behind Reliable, Scalable, and Maintainable Systems (Kleppmann, Martin)
+- Your Highlight at location 296-298 | Added on Saturday, 19 December 2020 23:31:33
+
+Hard disks crash, RAM becomes faulty, the power grid has a blackout, someone unplugs the wrong network cable. Anyone who has worked with large datacenters can tell you that these things happen all the time when you have a lot of machines.
+==========
+Designing Data-Intensive Applications: The Big Ideas Behind Reliable, Scalable, and Maintainable Systems (Kleppmann, Martin)
+- Your Highlight at location 298-300 | Added on Saturday, 19 December 2020 23:32:03
+
+Hard disks are reported as having a mean time to failure (MTTF) of about 10 to 50 years [5, 6]. Thus, on a storage cluster with 10,000 disks, we should expect on average one disk to die per day.
+==========
