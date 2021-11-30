@@ -1,8 +1,10 @@
 //! Core capabilities to process kindle clippings
+use std::collections::HashMap;
+use std::env;
 use std::error::Error;
 use std::fs;
-use std::env;
 
+static SEPARATOR: &str = "==========";
 pub struct Config {
     pub filename: String,
 }
@@ -12,7 +14,7 @@ impl Config {
         args.next();
         let filename = match args.next() {
             Some(arg) => arg,
-            None => return Err("Didn't get a file name")
+            None => return Err("Didn't get a file name"),
         };
 
         Ok(Config { filename })
@@ -22,18 +24,30 @@ impl Config {
 pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
     let contents = fs::read_to_string(config.filename)?;
     let items = split_notes(&contents);
-    // let r: Vec<&str> = items.iter().map(|x| x.split('\n')).collect();
-    for item in items {
-        for i in item.split('\n') {
-            println!("{:?}", i);
-        }
-    }
-    // println!("TEXT:\n {:?}", r);
+    let books = classify(&items);
+    println!("{:?}", books);
+
     Ok(())
 }
 
 pub fn split_notes(contents: &str) -> Vec<&str> {
-    contents.split("==========").filter(|x| !x.is_empty()).collect()
+    contents
+        .split(SEPARATOR)
+        .filter(|x| !(x.trim().is_empty()))
+        .collect()
+}
+
+fn classify<'a>(items: &[&'a str]) -> HashMap<&'a str, Vec<&'a str>> {
+    items
+        .iter()
+        .map(|item| {
+            let fragments: Vec<&str> = item.trim_start().splitn(3, '\n').collect();
+            (
+                fragments.first().unwrap().to_owned(),
+                vec![fragments.last().unwrap().to_owned()],
+            )
+        })
+        .collect()
 }
 
 #[cfg(test)]
