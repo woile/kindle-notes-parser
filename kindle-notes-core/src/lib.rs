@@ -3,6 +3,8 @@ use std::collections::HashMap;
 use std::env;
 use std::error::Error;
 use std::fs;
+use std::fs::File;
+use std::io::Write;
 
 static SEPARATOR: &str = "==========";
 pub struct Config {
@@ -21,11 +23,26 @@ impl Config {
     }
 }
 
+fn create_note(filename: &str, notes: &[&str]) -> std::io::Result<()> {
+    let mut book_buffer = File::create(filename)?;
+    for note in notes {
+        writeln!(&mut book_buffer, "{}\n", note).unwrap();
+    }
+    Ok(())
+}
+
 pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
     let contents = fs::read_to_string(config.filename)?;
     let items = split_notes(&contents);
     let books = classify(&items);
-    println!("{:?}", books);
+
+    let folder_name = "kindle-notes";
+    fs::create_dir_all(folder_name)?;
+
+    for (book_name, notes) in books {
+        let filename = format!("./{}/{}.md", folder_name, book_name);
+        create_note(&filename, &notes)?;
+    }
 
     Ok(())
 }
@@ -38,16 +55,20 @@ pub fn split_notes(contents: &str) -> Vec<&str> {
 }
 
 fn classify<'a>(items: &[&'a str]) -> HashMap<&'a str, Vec<&'a str>> {
-    items
-        .iter()
-        .map(|item| {
-            let fragments: Vec<&str> = item.trim_start().splitn(3, '\n').collect();
-            (
-                fragments.first().unwrap().to_owned(),
-                vec![fragments.last().unwrap().to_owned()],
-            )
-        })
-        .collect()
+    let mut books = HashMap::new();
+    for item in items {
+        let fragments: Vec<&str> = item.trim_start().splitn(4, '\n').collect();
+        let book_name = fragments.first().unwrap().to_owned().trim();
+        let extract = fragments.last().unwrap().to_owned().trim();
+        if extract.is_empty() {
+            continue;
+        }
+        books
+            .entry(book_name)
+            .or_insert_with(Vec::new)
+            .push(extract);
+    }
+    books
 }
 
 #[cfg(test)]

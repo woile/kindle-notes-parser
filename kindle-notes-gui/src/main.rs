@@ -1,7 +1,8 @@
 use druid::widget::{Button, Controller, Flex, Label, TextBox};
 use druid::{
-    AppLauncher, Data, Env, Event, EventCtx, Lens, LocalizedString, PlatformError, Widget,
-    WidgetExt, WindowDesc, UpdateCtx
+    commands, AppDelegate, AppLauncher, Command, Data, DelegateCtx, Env, Event, EventCtx,
+    FileDialogOptions, FileSpec, Handled, Lens, LocalizedString, PlatformError, Target, UpdateCtx,
+    Widget, WidgetExt, WindowDesc,
 };
 
 const SPACING: f64 = 15.;
@@ -24,7 +25,8 @@ struct AppData {
 impl AppData {
     fn new() -> AppData {
         AppData {
-            notes_path: String::from(""),
+            notes_path: String::from("My Clippings.txt"),
+
             output_folder: String::from("~/"),
             status: Status::Idle,
         }
@@ -35,6 +37,35 @@ impl AppData {
     }
 }
 
+impl AppDelegate<AppData> for AppData {
+    fn command(
+        &mut self,
+        _ctx: &mut DelegateCtx,
+        _target: Target,
+        cmd: &Command,
+        data: &mut AppData,
+        _env: &Env,
+    ) -> Handled {
+        if let Some(file_info) = cmd.get(commands::OPEN_FILE) {
+            println!("Vos queres ESTA {:?}", file_info.path());
+            println!("Que es este string? {:?}", data);
+            data.notes_path = file_info.path().to_string_lossy().to_string();
+
+            // match std::fs::read_to_string(file_info.path()) {
+            //     Ok(s) => {
+            //         let first_line = s.lines().next().unwrap_or("");
+            //         *data = first_line.to_owned();
+            //     }
+            //     Err(e) => {
+            //         println!("Error opening file: {}", e);
+            //     }
+            // }
+            return Handled::Yes;
+        }
+        Handled::No
+    }
+}
+
 fn main() -> Result<(), PlatformError> {
     let data = AppData::new();
 
@@ -42,6 +73,7 @@ fn main() -> Result<(), PlatformError> {
         WindowDesc::new(ui_builder()).title(LocalizedString::new("Kindle Notes parser"));
 
     AppLauncher::with_window(main_window)
+        .delegate(AppData::new())
         .log_to_console()
         .launch(data)
 }
@@ -51,12 +83,28 @@ fn ui_builder() -> impl Widget<AppData> {
     const INPUT_PADDING: (f64, f64, f64, f64) = (20.0, 5.0, 20.0, 0.0);
     const LABEL_PADDING: (f64, f64, f64, f64) = (20.0, 20.0, 20.0, 0.0);
 
+    let txt = FileSpec::new("Text file", &["txt"]);
+    let default_open_name = String::from("My Clippings.txt");
+    let open_dialog_options = FileDialogOptions::new()
+        .allowed_types(vec![txt])
+        .default_type(txt)
+        .default_name(default_open_name)
+        .name_label("Source")
+        .title("Select your kindle notes")
+        .button_text("Open file");
+    let open = Button::new(LocalizedString::new("Choose file")).on_click(move |ctx, _, _| {
+        ctx.submit_command(druid::commands::SHOW_OPEN_PANEL.with(open_dialog_options.clone()))
+    });
+
     let notes_path_text = LocalizedString::new("Notes path (txt file)");
     let notes_path_label = Label::new(notes_path_text)
         .padding(LABEL_PADDING)
         .align_left();
     let notes_path_input = TextBox::new()
         .lens(AppData::notes_path)
+        // .disabled_if(|x| {
+
+        // })
         .expand_width()
         .padding(INPUT_PADDING)
         .controller(TboxControl);
@@ -79,6 +127,7 @@ fn ui_builder() -> impl Widget<AppData> {
     Flex::column()
         .with_child(notes_path_label)
         .with_child(notes_path_input)
+        .with_child(open)
         .with_spacer(SPACING)
         .with_child(output_folder_label)
         .with_child(output_folder_input)
@@ -108,14 +157,14 @@ impl<W: Widget<AppData>> Controller<AppData, W> for TboxControl {
 
 struct BtnController;
 
-impl <W: Widget<AppData>> Controller<AppData, W> for BtnController {
+impl<W: Widget<AppData>> Controller<AppData, W> for BtnController {
     fn update(
         &mut self,
         child: &mut W,
         ctx: &mut UpdateCtx,
         old: &AppData,
         data: &AppData,
-        env: &Env
+        env: &Env,
     ) {
         child.update(ctx, old, data, env);
         // repaint widget everytime data changes

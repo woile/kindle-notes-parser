@@ -39,3 +39,4 @@ graph TD;
 
 - [cli project at rust book](https://doc.rust-lang.org/book/ch12-00-an-io-project.html)
 - Droid GUI usage example: [druid-7guis-flight](https://github.com/MrGibus/Druid-7guis/blob/main/src/flights.rs)
+- Open / save example: [druid/examples/open_save](https://github.com/linebender/druid/blob/master/druid/examples/open_save.rs)
