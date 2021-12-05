@@ -5,10 +5,13 @@ use std::error::Error;
 use std::fs;
 use std::fs::File;
 use std::io::Write;
+use std::path::Path;
 
 static SEPARATOR: &str = "==========";
 pub struct Config {
     pub filename: String,
+    pub output_path: String,
+    pub output_folder: String,
 }
 
 impl Config {
@@ -19,11 +22,25 @@ impl Config {
             None => return Err("Didn't get a file name"),
         };
 
-        Ok(Config { filename })
+        let output_path = match args.next() {
+            Some(arg) => arg,
+            None => String::from("."),
+        };
+
+        let output_folder = match args.next() {
+            Some(arg) => arg,
+            None => String::from("kindle-notes"),
+        };
+
+        Ok(Config {
+            filename,
+            output_path,
+            output_folder,
+        })
     }
 }
 
-fn create_note(filename: &str, notes: &[&str]) -> std::io::Result<()> {
+fn create_note(filename: &Path, notes: &[&str]) -> std::io::Result<()> {
     let mut book_buffer = File::create(filename)?;
     for note in notes {
         writeln!(&mut book_buffer, "{}\n", note).unwrap();
@@ -36,11 +53,17 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
     let items = split_notes(&contents);
     let books = classify(&items);
 
-    let folder_name = "kindle-notes";
-    fs::create_dir_all(folder_name)?;
+    let output_path = Path::new(&config.output_path).join(config.output_folder);
+    fs::create_dir_all(&output_path)?;
+
+    println!(
+        "Writing notes to {}",
+        output_path.to_str().expect("Path could not be created.")
+    );
 
     for (book_name, notes) in books {
-        let filename = format!("./{}/{}.md", folder_name, book_name);
+        let mut filename = output_path.clone().join(book_name);
+        filename.set_extension("md");
         create_note(&filename, &notes)?;
     }
 
