@@ -4,6 +4,8 @@ Take your kindle notes in txt format and output a file per book.
 
 Ideal for second brains or walled gardens.
 
+![Screenshot of the software](docs/images/image.png)
+
 ## Why this?
 
 I usually take notes in my kindle but I don't end up doing anything with them.
