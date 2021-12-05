@@ -6,6 +6,7 @@ use druid::{
     Widget, WidgetExt, WindowDesc,
 };
 use kindle_notes_core::Config;
+use std::fs;
 use std::iter::FromIterator;
 use std::process;
 
@@ -29,14 +30,12 @@ struct AppData {
 
 impl AppData {
     fn new() -> AppData {
+        let default_documents = dirs::document_dir().expect("Couldn't find Documents directory");
+        let default_notes = default_documents.join("My Clippings.txt");
+
         AppData {
-            notes_path: String::from("My Clippings.txt"),
-            output_path: String::from(
-                dirs::document_dir()
-                    .expect("Couldn't find Documents directory")
-                    .to_str()
-                    .unwrap(),
-            ),
+            notes_path: String::from(default_notes.to_str().unwrap()),
+            output_path: String::from(default_documents.to_str().unwrap()),
             status: Status::Idle,
             index: 0,
         }
@@ -54,7 +53,10 @@ impl Iterator for AppData {
             0 => String::from(""),
             1 => self.notes_path.clone(),
             2 => self.output_path.clone(),
-            _ => return None,
+            _ => {
+                self.index = 0;
+                return None;
+            }
         };
         self.index += 1;
         Some(result)
@@ -71,9 +73,12 @@ impl AppDelegate<AppData> for AppData {
         _env: &Env,
     ) -> Handled {
         if let Some(file_info) = cmd.get(commands::OPEN_FILE) {
-            println!("Vos queres ESTA {:?}", file_info.path());
-            println!("Que es este string? {:?}", data);
-            data.notes_path = file_info.path().to_string_lossy().to_string();
+            let file_path = file_info.path();
+            if file_path.is_dir() {
+                data.output_path = file_path.to_string_lossy().to_string();
+            } else {
+                data.notes_path = file_path.to_string_lossy().to_string();
+            }
 
             return Handled::Yes;
         }
@@ -85,7 +90,7 @@ fn main() -> Result<(), PlatformError> {
     let data = AppData::new();
 
     let main_window =
-        WindowDesc::new(ui_builder()).title(LocalizedString::new("Kindle Notes parser"));
+        WindowDesc::new(ui_builder()).title(LocalizedString::new("Kindle Notes Parser"));
 
     AppLauncher::with_window(main_window)
         .delegate(AppData::new())
@@ -95,22 +100,10 @@ fn main() -> Result<(), PlatformError> {
 
 fn ui_builder() -> impl Widget<AppData> {
     // The label text will be computed dynamically based on the current locale and count
-    const INPUT_PADDING: (f64, f64, f64, f64) = (20.0, 5.0, 20.0, 0.0);
-    const LABEL_PADDING: (f64, f64, f64, f64) = (20.0, 20.0, 20.0, 0.0);
+    const INPUT_PADDING: (f64, f64, f64, f64) = (30.0, 5.0, 30.0, 0.0);
+    const LABEL_PADDING: (f64, f64, f64, f64) = (30.0, 20.0, 30.0, 0.0);
 
-    let txt = FileSpec::new("Text file", &["txt"]);
-    let default_open_name = String::from("My Clippings.txt");
-    let open_dialog_options = FileDialogOptions::new()
-        .allowed_types(vec![txt])
-        .default_type(txt)
-        .default_name(default_open_name)
-        .name_label("Source")
-        .title("Select your kindle notes")
-        .button_text("Open file");
-    let open = Button::new(LocalizedString::new("Choose file")).on_click(move |ctx, _, _| {
-        ctx.submit_command(druid::commands::SHOW_OPEN_PANEL.with(open_dialog_options.clone()))
-    });
-
+    // FILE INPUT PATH
     let notes_path_text = LocalizedString::new("Notes path (txt file)");
     let notes_path_label = Label::new(notes_path_text)
         .padding(LABEL_PADDING)
@@ -123,6 +116,24 @@ fn ui_builder() -> impl Widget<AppData> {
         .padding(INPUT_PADDING)
         .controller(TboxControl);
 
+    // OPEN INPUT FILE BUTTON
+    let txt = FileSpec::new("Text file", &["txt"]);
+    let default_open_name = String::from("My Clippings.txt");
+    let open_dialog_options = FileDialogOptions::new()
+        .allowed_types(vec![txt])
+        .default_type(txt)
+        .default_name(default_open_name)
+        .name_label("Source")
+        .title("Select your kindle notes")
+        .button_text("Open file");
+    let open = Button::new(LocalizedString::new("Choose file"))
+        .on_click(move |ctx, _, _| {
+            ctx.submit_command(druid::commands::SHOW_OPEN_PANEL.with(open_dialog_options.clone()))
+        })
+        .align_right()
+        .padding((30.0, 15.0, 30.0, 0.0));
+
+    // FOLDER OUTPUT PATH
     let output_folder_text = LocalizedString::new("Output folder");
     let output_folder_label = Label::new(output_folder_text)
         .padding(LABEL_PADDING)
@@ -133,6 +144,22 @@ fn ui_builder() -> impl Widget<AppData> {
         .padding(INPUT_PADDING)
         .controller(TboxControl);
 
+    // OPEN OUTPUT FOLDER BUTTON
+    let open_folder_dialog_options = FileDialogOptions::new()
+        .select_directories()
+        .name_label("Output")
+        .title("Select output folder")
+        .button_text("Open folder");
+    let open_folder = Button::new(LocalizedString::new("Choose folder"))
+        .on_click(move |ctx, _, _| {
+            ctx.submit_command(
+                druid::commands::SHOW_OPEN_PANEL.with(open_folder_dialog_options.clone()),
+            )
+        })
+        .align_right()
+        .padding((30.0, 15.0, 30.0, 0.0));
+
+    // SUBMIT BUTTON
     let button = Button::new("Run")
         .on_click(|_, data: &mut AppData, _: &_| submit(data))
         .padding(5.0)
@@ -145,6 +172,7 @@ fn ui_builder() -> impl Widget<AppData> {
         .with_spacer(SPACING)
         .with_child(output_folder_label)
         .with_child(output_folder_input)
+        .with_child(open_folder)
         .with_spacer(SPACING)
         .with_child(button)
 }

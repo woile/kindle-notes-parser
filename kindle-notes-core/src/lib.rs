@@ -6,6 +6,7 @@ use std::fs;
 use std::fs::OpenOptions;
 use std::io::Write;
 use std::path::Path;
+
 static SEPARATOR: &str = "==========";
 pub struct Config {
     pub filename: String,
