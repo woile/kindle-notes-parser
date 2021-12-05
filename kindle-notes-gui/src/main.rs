@@ -1,9 +1,13 @@
+extern crate dirs;
 use druid::widget::{Button, Controller, Flex, Label, TextBox};
 use druid::{
     commands, AppDelegate, AppLauncher, Command, Data, DelegateCtx, Env, Event, EventCtx,
     FileDialogOptions, FileSpec, Handled, Lens, LocalizedString, PlatformError, Target, UpdateCtx,
     Widget, WidgetExt, WindowDesc,
 };
+use kindle_notes_core::Config;
+use std::iter::FromIterator;
+use std::process;
 
 const SPACING: f64 = 15.;
 
@@ -18,22 +22,42 @@ enum Status {
 #[derive(Clone, Data, Lens, Debug)]
 struct AppData {
     notes_path: String,
-    output_folder: String,
+    output_path: String,
     status: Status,
+    index: usize,
 }
 
 impl AppData {
     fn new() -> AppData {
         AppData {
             notes_path: String::from("My Clippings.txt"),
-
-            output_folder: String::from("~/"),
+            output_path: String::from(
+                dirs::document_dir()
+                    .expect("Couldn't find Documents directory")
+                    .to_str()
+                    .unwrap(),
+            ),
             status: Status::Idle,
+            index: 0,
         }
     }
     fn update_states(&mut self) {
         println!("Here I can update stuff like disabled, invalid input etc");
         println!("Here's yur app data: {:?}", self);
+    }
+}
+
+impl Iterator for AppData {
+    type Item = String;
+    fn next(&mut self) -> Option<Self::Item> {
+        let result = match self.index {
+            0 => String::from(""),
+            1 => self.notes_path.clone(),
+            2 => self.output_path.clone(),
+            _ => return None,
+        };
+        self.index += 1;
+        Some(result)
     }
 }
 
@@ -51,15 +75,6 @@ impl AppDelegate<AppData> for AppData {
             println!("Que es este string? {:?}", data);
             data.notes_path = file_info.path().to_string_lossy().to_string();
 
-            // match std::fs::read_to_string(file_info.path()) {
-            //     Ok(s) => {
-            //         let first_line = s.lines().next().unwrap_or("");
-            //         *data = first_line.to_owned();
-            //     }
-            //     Err(e) => {
-            //         println!("Error opening file: {}", e);
-            //     }
-            // }
             return Handled::Yes;
         }
         Handled::No
@@ -103,7 +118,6 @@ fn ui_builder() -> impl Widget<AppData> {
     let notes_path_input = TextBox::new()
         .lens(AppData::notes_path)
         // .disabled_if(|x| {
-
         // })
         .expand_width()
         .padding(INPUT_PADDING)
@@ -114,7 +128,7 @@ fn ui_builder() -> impl Widget<AppData> {
         .padding(LABEL_PADDING)
         .align_left();
     let output_folder_input = TextBox::new()
-        .lens(AppData::output_folder)
+        .lens(AppData::output_path)
         .expand_width()
         .padding(INPUT_PADDING)
         .controller(TboxControl);
@@ -175,5 +189,17 @@ impl<W: Widget<AppData>> Controller<AppData, W> for BtnController {
 // Application login
 fn submit(data: &mut AppData) {
     data.status = Status::InProgress;
+
     println!("Data result: {:?}", data);
+    let args = Vec::from_iter(data);
+    println!("args are: {:?}", args);
+    let config = Config::new(&args).unwrap_or_else(|err| {
+        eprintln!("Problem parsing arguments: {}", err);
+        process::exit(1);
+    });
+
+    if let Err(e) = kindle_notes_core::run(config) {
+        eprintln!("Application error: {}", e);
+        process::exit(1);
+    };
 }

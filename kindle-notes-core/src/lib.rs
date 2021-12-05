@@ -1,13 +1,11 @@
 //! Core capabilities to process kindle clippings
 use rayon::prelude::*;
 use std::collections::HashMap;
-use std::env;
 use std::error::Error;
 use std::fs;
 use std::fs::OpenOptions;
 use std::io::Write;
 use std::path::Path;
-
 static SEPARATOR: &str = "==========";
 pub struct Config {
     pub filename: String,
@@ -16,20 +14,21 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn new(mut args: env::Args) -> Result<Config, &'static str> {
+    pub fn new(args: &[String]) -> Result<Config, &'static str> {
+        let mut args = args.iter();
         args.next();
         let filename = match args.next() {
-            Some(arg) => arg,
+            Some(arg) => arg.to_owned(),
             None => return Err("Didn't get a file name"),
         };
 
         let output_path = match args.next() {
-            Some(arg) => arg,
+            Some(arg) => arg.to_owned(),
             None => String::from("."),
         };
 
         let output_folder = match args.next() {
-            Some(arg) => arg,
+            Some(arg) => arg.to_owned(),
             None => String::from("kindle-notes"),
         };
 
@@ -54,10 +53,10 @@ fn create_note(filename: &Path, notes: &[&str]) -> std::io::Result<()> {
 }
 
 pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
-    let contents = fs::read_to_string(config.filename)?;
+    let notes_filepath = Path::new(&config.filename);
+    let contents = fs::read_to_string(notes_filepath)?;
     let items = split_notes(&contents);
     let books = classify(&items);
-
     let output_path = Path::new(&config.output_path).join(config.output_folder);
     fs::create_dir_all(&output_path)?;
 
