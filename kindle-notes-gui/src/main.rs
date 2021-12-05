@@ -1,5 +1,5 @@
 extern crate dirs;
-use druid::widget::{Button, Controller, Flex, Label, TextBox};
+use druid::widget::{Button, Controller, Flex, Label, TextBox, WidgetWrapper};
 use druid::{
     commands, AppDelegate, AppLauncher, Command, Data, DelegateCtx, Env, Event, EventCtx,
     FileDialogOptions, FileSpec, Handled, Lens, LocalizedString, PlatformError, Target, UpdateCtx,
@@ -26,6 +26,8 @@ struct AppData {
     output_path: String,
     status: Status,
     index: usize,
+    disabled: bool,
+    feedback_text: String,
 }
 
 impl AppData {
@@ -38,6 +40,8 @@ impl AppData {
             output_path: String::from(default_documents.to_str().unwrap()),
             status: Status::Idle,
             index: 0,
+            disabled: false,
+            feedback_text: String::from(""),
         }
     }
     fn update_states(&mut self) {
@@ -103,6 +107,12 @@ fn ui_builder() -> impl Widget<AppData> {
     const INPUT_PADDING: (f64, f64, f64, f64) = (30.0, 5.0, 30.0, 0.0);
     const LABEL_PADDING: (f64, f64, f64, f64) = (30.0, 20.0, 30.0, 0.0);
 
+    // EXPLANATION TEXT
+    let explanation_text = LocalizedString::new("Choose the input file copied from your kindle,\nand the folder where you want the new files to be created");
+    let explanation = Label::new(explanation_text)
+        .padding((30.0, 10.0))
+        .align_left();
+
     // FILE INPUT PATH
     let notes_path_text = LocalizedString::new("Notes path (txt file)");
     let notes_path_label = Label::new(notes_path_text)
@@ -163,9 +173,14 @@ fn ui_builder() -> impl Widget<AppData> {
     let button = Button::new("Run")
         .on_click(|_, data: &mut AppData, _: &_| submit(data))
         .padding(5.0)
-        .controller(BtnController);
+        .controller(BtnController)
+        .disabled_if(|data, _| data.disabled);
+
+    // FEEDBACK TEXT
+    let feedback = Label::new(|data: &AppData, _: &Env| data.feedback_text.clone());
 
     Flex::column()
+        .with_child(explanation)
         .with_child(notes_path_label)
         .with_child(notes_path_input)
         .with_child(open)
@@ -175,6 +190,7 @@ fn ui_builder() -> impl Widget<AppData> {
         .with_child(open_folder)
         .with_spacer(SPACING)
         .with_child(button)
+        .with_child(feedback)
 }
 
 struct TboxControl;
@@ -217,9 +233,11 @@ impl<W: Widget<AppData>> Controller<AppData, W> for BtnController {
 // Application login
 fn submit(data: &mut AppData) {
     data.status = Status::InProgress;
+    data.disabled = true;
+    data.feedback_text = String::from("Running...");
 
     println!("Data result: {:?}", data);
-    let args = Vec::from_iter(data);
+    let args = Vec::from_iter(data.clone());
     println!("args are: {:?}", args);
     let config = Config::new(&args).unwrap_or_else(|err| {
         eprintln!("Problem parsing arguments: {}", err);
@@ -230,4 +248,6 @@ fn submit(data: &mut AppData) {
         eprintln!("Application error: {}", e);
         process::exit(1);
     };
+    data.feedback_text = String::from("Done");
+    data.disabled = false;
 }
