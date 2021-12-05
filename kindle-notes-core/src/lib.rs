@@ -1,4 +1,5 @@
 //! Core capabilities to process kindle clippings
+use rayon::prelude::*;
 use std::collections::HashMap;
 use std::env;
 use std::error::Error;
@@ -65,11 +66,11 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
         output_path.to_str().expect("Path could not be created.")
     );
 
-    for (book_name, notes) in books {
+    books.par_iter().for_each(|(book_name, notes)| {
         let mut filename = output_path.clone().join(book_name);
         filename.set_extension("md");
-        create_note(&filename, &notes)?;
-    }
+        create_note(&filename, notes).unwrap();
+    });
 
     Ok(())
 }
