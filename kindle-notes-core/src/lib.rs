@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use std::env;
 use std::error::Error;
 use std::fs;
-use std::fs::File;
+use std::fs::OpenOptions;
 use std::io::Write;
 use std::path::Path;
 
@@ -41,7 +41,11 @@ impl Config {
 }
 
 fn create_note(filename: &Path, notes: &[&str]) -> std::io::Result<()> {
-    let mut book_buffer = File::create(filename)?;
+    let mut book_buffer = OpenOptions::new()
+        .append(true)
+        .create(true)
+        .open(filename)?;
+
     for note in notes {
         writeln!(&mut book_buffer, "{}\n", note).unwrap();
     }
