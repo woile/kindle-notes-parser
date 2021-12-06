@@ -69,7 +69,8 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
     books.par_iter().for_each(|(book_name, notes)| {
         let mut filename = output_path.clone().join(book_name);
         filename.set_extension("md");
-        create_note(&filename, notes).unwrap();
+        let notes = clean(notes);
+        create_note(&filename, &notes).unwrap();
     });
 
     Ok(())
@@ -82,10 +83,25 @@ pub fn split_notes(contents: &str) -> Vec<&str> {
         .collect()
 }
 
+fn clean<'a>(notes: &[&'a str]) -> Vec<&'a str> {
+    notes
+        .windows(2)
+        .map(|win_notes| {
+            let first_note = win_notes.first().unwrap();
+            if let Some(second_note) = win_notes.last() {
+                if first_note.contains(second_note) || second_note.contains(first_note) {
+                    return second_note.to_owned();
+                }
+            }
+            first_note.to_owned()
+        })
+        .collect()
+}
+
 fn classify<'a>(items: &[&'a str]) -> HashMap<&'a str, Vec<&'a str>> {
     let mut books = HashMap::new();
     for item in items {
-        let fragments: Vec<&str> = item.trim_start().splitn(4, '\n').collect();
+        let fragments: Vec<&str> = item.trim_start().splitn(3, '\n').collect();
         let book_name = fragments.first().unwrap().to_owned().trim();
         let extract = fragments.last().unwrap().to_owned().trim();
         if extract.is_empty() {
