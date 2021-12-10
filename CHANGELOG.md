@@ -1,3 +1,9 @@
+## v0.2.1 (2021-12-10)
+
+### Refactor
+
+- remove unused code
+
 ## v0.2.0 (2021-12-10)
 
 ### Feat
