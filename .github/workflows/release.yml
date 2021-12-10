@@ -26,19 +26,33 @@ jobs:
           - macos-latest
           - windows-latest
     runs-on: ${{ matrix.os }}
+    if: github.repository_owner == 'Woile'
+    needs:
+      - create-release
     steps:
       - uses: actions/checkout@v2
       - uses: taiki-e/github-actions/install-rust@main
         with:
           toolchain: ${{ matrix.rust || 'nightly' }}
-      - run: |
+      - name: Update Linux Repositories
+        run: sudo apt-get update
+        if: startsWith(matrix.os, 'ubuntu')
+      - name: Install Ubuntu dependencies
+        run: |
           sudo apt-get update && sudo apt-get install -y \
             libgtk-3-dev
+            libssl-dev
+            libx11-dev
+            libasound2-dev
         if: startsWith(matrix.os, 'ubuntu')
+      - name: Install MacOS dependencies
+        run: brew install cairo
+        if: startsWith(matrix.os, 'macos')
       - uses: taiki-e/upload-rust-binary-action@v1
         with:
           # (required)
-          bin: 'kindle-notes-[cg][lu]*'
+          # kindle-notes-core won't be built because it's a lib and not a bin
+          bin: 'kindle-notes-*'
           target: ${{ matrix.target }}
           # (optional) On which platform to distribute the `.tar.gz` file.
           # [default value: unix]
