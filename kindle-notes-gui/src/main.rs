@@ -1,12 +1,11 @@
 extern crate dirs;
-use druid::widget::{Button, Controller, Flex, Label, TextBox, WidgetWrapper};
+use druid::widget::{Button, Controller, Flex, Label, TextBox};
 use druid::{
     commands, AppDelegate, AppLauncher, Command, Data, DelegateCtx, Env, Event, EventCtx,
     FileDialogOptions, FileSpec, Handled, Lens, LocalizedString, PlatformError, Target, UpdateCtx,
     Widget, WidgetExt, WindowDesc,
 };
 use kindle_notes_core::Config;
-use std::fs;
 use std::iter::FromIterator;
 use std::process;
 
@@ -16,8 +15,6 @@ const SPACING: f64 = 15.;
 enum Status {
     Idle,
     InProgress,
-    Done,
-    Error,
 }
 
 #[derive(Clone, Data, Lens, Debug)]
