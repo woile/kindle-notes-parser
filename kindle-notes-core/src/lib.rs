@@ -83,17 +83,29 @@ pub fn split_notes(contents: &str) -> Vec<&str> {
         .collect()
 }
 
+fn remove_whitespace(s: &str) -> String {
+    s.chars().filter(|c| !c.is_whitespace()).collect()
+}
+
 fn clean<'a>(notes: &[&'a str]) -> Vec<&'a str> {
+    let mut phrase: Option<String> = None;
+
     notes
-        .windows(2)
-        .map(|win_notes| {
-            let first_note = win_notes.first().unwrap();
-            if let Some(second_note) = win_notes.last() {
-                if first_note.contains(second_note) || second_note.contains(first_note) {
-                    return second_note.to_owned();
+        .iter()
+        .copied()
+        .rev()
+        .filter_map(|note| {
+            let note = note.trim();
+            if let Some(p) = phrase.clone() {
+                let side_a = remove_whitespace(note);
+                let side_b = remove_whitespace(&p);
+                phrase = Some(String::from(note));
+                if side_a.contains(&side_b) || side_b.contains(&side_a) {
+                    return None;
                 }
             }
-            first_note.to_owned()
+            phrase = Some(String::from(note));
+            Some(note)
         })
         .collect()
 }
