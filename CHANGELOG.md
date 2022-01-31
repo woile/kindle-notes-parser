@@ -1,3 +1,9 @@
+## v0.2.2 (2022-01-31)
+
+### Fix
+
+- remove duplicates when cleaning notes
+
 ## v0.2.1 (2021-12-10)
 
 ### Refactor
