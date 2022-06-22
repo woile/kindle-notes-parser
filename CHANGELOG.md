@@ -1,3 +1,17 @@
+## v1.0.0 (2022-06-22)
+
+### Fix
+
+- replace `:` with `-` when generating filename
+
+### BREAKING CHANGE
+
+- Files using a `:` cannot be synced to Android using Syncthing. The filename replaces `:` with ` -` (space + minus). In order to use this version, rename your files before.
+You can use `rename` on Linux and install it on Mac `brew install rename`.
+```
+rename 's/:/ \-/g' kindle-notes/*.md
+```
+
 ## v0.2.3 (2022-03-09)
 
 ### Fix
