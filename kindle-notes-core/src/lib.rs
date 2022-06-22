@@ -115,7 +115,7 @@ fn classify<'a>(items: &[&'a str]) -> HashMap<String, Vec<&'a str>> {
     for item in items.to_owned() {
         let fragments: Vec<&str> = item.trim_start().splitn(3, '\n').collect();
 
-        let book_name = fragments.first().unwrap().to_owned().trim().replace(|ch: char|!ch.is_ascii(), "");
+        let book_name = fragments.first().unwrap().to_owned().trim().replace(|ch: char|!ch.is_ascii(), "").replace(":", " -");
         let extract = fragments.last().unwrap().to_owned().trim();
         if extract.is_empty() {
             continue;
