@@ -6,6 +6,7 @@ use std::fs;
 use std::fs::OpenOptions;
 use std::io::Write;
 use std::path::Path;
+use sanitize_filename;
 
 static SEPARATOR: &str = "==========";
 pub struct Config {
@@ -67,10 +68,25 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
     );
 
     books.par_iter().for_each(|(book_name, notes)| {
-        let mut filename = output_path.clone().join(book_name);
+        let options = sanitize_filename::Options {
+            truncate: true, // true by default, truncates to 255 bytes
+            windows: true, // default value depends on the OS, removes reserved names like `con` from start of strings on Windows
+            replacement: "" // str to replace sanitized chars/strings
+        };
+        let sanitized_book_name = sanitize_filename::sanitize_with_options(book_name, options);
+
+        if &sanitized_book_name != book_name {
+            println!("Book name sanitized:\nold: {book_name}\nnew: {sanitized_book_name}\n");
+        }
+        let mut filename = output_path.clone().join(&sanitized_book_name);
         filename.set_extension("md");
         let notes = clean(notes);
-        create_note(&filename, &notes).unwrap();
+        let res = create_note(&filename, &notes);
+        if let Err(err) = res {
+            let filename = filename.display();
+            println!("ERROR: Failed to proccess `{sanitized_book_name}`.\nERROR: Target file: `{filename}`\nERROR: {err}\nERROR: Possible solution: try to rename the note\n");
+
+        }
     });
 
     Ok(())
