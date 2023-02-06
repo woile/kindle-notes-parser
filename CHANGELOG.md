@@ -1,3 +1,9 @@
+## v1.0.1 (2023-02-06)
+
+### Fix
+
+- problematic filenames
+
 ## v1.0.0 (2022-06-22)
 
 ### Fix
