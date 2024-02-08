@@ -48,7 +48,7 @@ fn create_note(filename: &Path, notes: &[&str]) -> std::io::Result<()> {
         .create(true)
         .open(filename)?;
 
-    for note in notes {
+    for note in notes.iter().rev() {
         writeln!(&mut book_buffer, "{}\n", note).unwrap();
     }
     Ok(())
